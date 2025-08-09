@@ -1,3 +1,14 @@
+```bash
+# generate Sphinx sources + user repo files
+python3 scripts/mkall.py   # creates ./source and ./user_repo
+
+# build HTML
+make html
+
+# build PDF (requires a LaTeX distribution, e.g. TeX Live/MacTeX/MiKTeX)
+make latexpdf
+```
+
 
 Mathematics in Lean Source
 ==========================
