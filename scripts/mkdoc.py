@@ -2,6 +2,18 @@ import regex
 from pathlib import Path
 import shutil
 
+SKIP = [
+    regex.compile(r"C01_Introduction/S01_Getting_Started.lean"),
+    regex.compile(r"C02_.*?/S05.*?"),
+    regex.compile(r"C04_.*?/S03.*?"),
+    regex.compile(r"C05_.*?/S01.*?"),
+    regex.compile(r"C05_.*?/S03.*?"),
+    regex.compile(r"C06_.*?/S01.*?"),
+    regex.compile(r"C06_.*?/S02.*?"),
+    regex.compile(r"C07_.*?/S03.*?"),
+    regex.compile(r"C08_.*?/.*?"),
+]
+
 # Main repository directories
 repository_root = Path(__file__).parent.parent.resolve()
 lean_source_dir = repository_root/'MIL'
@@ -183,6 +195,9 @@ def process_section(chapter_name, section_name):
         mode = 'both'
         quoting = False
         line_num = 0
+        ####################################
+        prev_line = None
+        ####################################
         for line in source_file:
             line_num += 1
             # Command lines.
@@ -237,6 +252,15 @@ def process_section(chapter_name, section_name):
                     raise RuntimeError("unexpected mode")
                 if quoting and mode != 'solutions':
                     rst_file.write('  ' + line)
+            ####################################
+            path = "{}/{}.lean".format(chapter_name, section_name)
+            if any(p.match(path) for p in SKIP):
+                if prev_line and len(prev_line) == len(line) and line.startswith("-"):
+                    # source_file[0] = "/- OMIT:" + source_file[0]
+                    # source_file[-1] += "-/"
+                    break
+            prev_line = str(line)
+            ####################################
 
 def process_sections():
     """
@@ -250,6 +274,7 @@ def process_sections():
             [file for file in chapter_dir.glob("S*.lean")],
             key=lambda f: f.name)
         for section_file in section_files:
+            # if "{}/{}".format(chapter_dir.name, section_file.name) in SKIP: continue
             section_name = section_file.name[:-5]
             process_section(chapter_dir.name, section_name)
 

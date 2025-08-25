@@ -48,6 +48,10 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
 exclude_patterns = ['build', 'Thumbs.db', '.DS_Store', '.venv', 'exclude']
+# Skip an entire chapter and two specific sections
+exclude_patterns += [
+    # 'C05_*.rst',
+]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
