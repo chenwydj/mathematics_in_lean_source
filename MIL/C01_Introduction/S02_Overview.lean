@@ -8,105 +8,144 @@ open Nat
 Overview
 --------
 
-Put simply, Lean is a tool for building complex expressions in a formal language
-known as *dependent type theory*.
-
 .. index:: check, commands ; check
 
-Every expression has a *type*, and you can use the `#check` command to
-print it.
-Some expressions have types like `ℕ` or `ℕ → ℕ`.
-These are mathematical objects.
+Types
+^^^^^
+
+* Lean is a formal language uses *dependent type theory*.
+
+* Every expression has a *type*
+
+  - use ``#check`` to print it.
+
+  - use ``#eval`` to do the calculation.
+
+
+
+Some typical types:
+
+* ``Prop``: propositions, e.g. ``def``, ``example``, ``... = ...``, regardless of the correctness.
+
+* A proof (``theorem``) is of the type of its own proposition.
+
+  - In Lean, *proof checking = type checking*.
+
+* ``Type`` / ``Type u``: user-defined **data** structures, ``u`` is the level.
+
 TEXT. -/
 -- These are pieces of data.
 -- QUOTE:
 #check 2 + 2
 
+#eval 2 + 2
+
 def f (x : ℕ) :=
   x + 3
 
 #check f
--- QUOTE.
 
-/- TEXT:
-Some expressions have type `Prop`.
-These are mathematical statements.
-TEXT. -/
--- These are propositions, of type `Prop`.
--- QUOTE:
 #check 2 + 2 = 4
 
 def FermatLastTheorem :=
   ∀ x y z n : ℕ, n > 2 ∧ x * y * z ≠ 0 → x ^ n + y ^ n ≠ z ^ n
 
 #check FermatLastTheorem
--- QUOTE.
 
-/- TEXT:
-Some expressions have a type, `P`, where `P` itself has type `Prop`.
-Such an expression is a proof of the proposition `P`.
-TEXT. -/
--- These are proofs of propositions.
--- QUOTE:
 theorem easy : 2 + 2 = 4 :=
   rfl
 
 #check easy
 
 theorem hard : FermatLastTheorem :=
+-- conceptually, you can replace ``FermatLastTheorem`` using the definition above,
+-- i.e. unfold ``FermatLastTheorem``'s definition.
   sorry
 
 #check hard
+
+-- QUOTE.
+
+
+
+
+
+/- TEXT:
+Common Keywords to Define Types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* ``def``: Define a *semi-reducible* data / functions / propositions, executable named value.
+
+  - By default, Lean will unfold ``def`` whenever you use it; except for expensive tactics like ``simp``.
+
+  - ``@[irreducible]`` to force fold
+
+Syntax:
+
+.. code-block::
+
+    def [name] ([arg₁] : [Type₁]) ([arg₂] : [Type₂]) : [ReturnType] :=
+      [definition_body]
+
+
+Examples:
+
+TEXT. -/
+
+-- QUOTE:
+def Sum' := Nat.add     -- semireducible
+@[irreducible] def Tally := Nat.add
+
+example (x y : Nat) : Sum' x y = x + y := by  -- semireducible unfolds by defeq
+  rfl                                         -- OK via definitional equality
+
+-- But irreducible will *not* unfold def:
+-- example (x y : Nat) : Tally x y = x + y := by rfl  -- fails
+
+example (x y : Nat) : Tally x y = x + y := by
+  -- Explicitly ask to unfold:
+  simp [Tally]  -- works
 -- QUOTE.
 
 /- TEXT:
-If you manage to construct an expression of type ``FermatLastTheorem`` and
-Lean accepts it as a term of that type,
-you have done something very impressive.
-(Using ``sorry`` is cheating, and Lean knows it.)
-So now you know the game.
-All that is left to learn are the rules.
+* ``theorem`` / ``lemma``: Define named propositions and proofs; Syntactic sugar for a ``non-computable def`` whose type is a ``Prop``, provided with a proof.
 
-This book is complementary to a companion tutorial,
-`Theorem Proving in Lean <https://leanprover.github.io/theorem_proving_in_lean4/>`_,
-which provides a more thorough introduction to the underlying logical framework
-and core syntax of Lean.
-*Theorem Proving in Lean* is for people who prefer to read a user manual cover to cover before
-using a new dishwasher.
-If you are the kind of person who prefers to hit the *start* button and
-figure out how to activate the potscrubber feature later,
-it makes more sense to start here and refer back to
-*Theorem Proving in Lean* as necessary.
+  - Lean tags proofs irreducible so proofs are fold.
 
-Another thing that distinguishes *Mathematics in Lean* from
-*Theorem Proving in Lean* is that here we place a much greater
-emphasis on the use of *tactics*.
-Given that we are trying to build complex expressions,
-Lean offers two ways of going about it:
-we can write down the expressions themselves
-(that is, suitable text descriptions thereof),
-or we can provide Lean with *instructions* as to how to construct them.
-For example, the following expression represents a proof of the fact that
-if ``n`` is even then so is ``m * n``:
+Syntax:
+
+.. code-block::
+
+    theorem [name]
+    ([arg₁] : [Type₁]) ([arg₂] : [Type₂])
+    ([hyp₁] : [Proposition₁]) ([hyp₂] : [Proposition₂]) : [conclusion] := by
+      [tactic-style proof steps]
+
+* ``example``: unnamed functions or values for tutorial / exercises.
+
+* ``instance``: declare that a particular type implements a typeclass, e.g., an instance of a data structure.
+TEXT. -/
+
+-- Register a class instance for synthesis, adds a value of a class type to the global environment so that instance synthesis can find it later.
+
+
+
+
+/- TEXT:
+
+Proofs
+^^^^^^
+
+Example:
+a proof of the fact that
+if ``n`` is even then so is ``m * n``.
+
 TEXT. -/
 -- Here are some proofs.
--- QUOTE:
-example : ∀ m n : Nat, Even n → Even (m * n) := fun m n ⟨k, (hk : n = k + k)⟩ ↦
-  have hmn : m * n = m * k + m * k := by rw [hk, mul_add]
-  show ∃ l, m * n = l + l from ⟨_, hmn⟩
--- QUOTE.
+
 
 /- TEXT:
-The *proof term* can be compressed to a single line:
-TEXT. -/
--- QUOTE:
-example : ∀ m n : Nat, Even n → Even (m * n) :=
-fun m n ⟨k, hk⟩ ↦ ⟨m * k, by rw [hk, mul_add]⟩
--- QUOTE.
-
-/- TEXT:
-The following is, instead, a *tactic-style* proof of the same theorem, where lines
-starting with ``--`` are comments, hence ignored by Lean:
+*Tactic-style* proof:
 TEXT. -/
 -- QUOTE:
 example : ∀ m n : Nat, Even n → Even (m * n) := by
@@ -120,116 +159,138 @@ example : ∀ m n : Nat, Even n → Even (m * n) := by
   ring
 -- QUOTE.
 
+
 /- TEXT:
-As you enter each line of such a proof in VS Code,
-Lean displays the *proof state* in a separate window,
-telling you what facts you have already established and what
-tasks remain to prove your theorem.
-You can replay the proof by stepping through the lines,
-since Lean will continue to show you the state of the proof
-at the point where the cursor is.
-In this example, you will then see that
-the first line of the proof introduces ``m`` and ``n``
-(we could have renamed them at that point, if we wanted to),
-and also decomposes the hypothesis ``Even n`` to
-a ``k`` and the assumption that ``n = 2 * k``.
-The second line, ``use m * k``,
-declares that we are going to show that ``m * n`` is even by
-showing ``m * n = 2 * (m * k)``.
-The next line uses the ``rw`` tactic
-to replace ``n`` by ``2 * k`` in the goal (``rw`` stands for “rewrite”),
-and the ``ring`` tactic solves the resulting goal ``m * (2 * k) = 2 * (m * k)``.
-
-The ability to build a proof in small steps with incremental feedback
-is extremely powerful. For that reason,
-tactic proofs are often easier and quicker to write than
-proof terms.
-There isn't a sharp distinction between the two:
-tactic proofs can be inserted in proof terms,
-as we did with the phrase ``by rw [hk, mul_add]`` in the example above.
-We will also see that, conversely,
-it is often useful to insert a short proof term in the middle of a tactic proof.
-That said, in this book, our emphasis will be on the use of tactics.
-
-In our example, the tactic proof can also be reduced to a one-liner:
+*Term-style* proof:
 TEXT. -/
 -- QUOTE:
-example : ∀ m n : Nat, Even n → Even (m * n) := by
-  rintro m n ⟨k, hk⟩; use m * k; rw [hk]; ring
+example : ∀ m n : Nat, Even n → Even (m * n) := fun m n ⟨k, (hk : n = k + k)⟩ ↦
+  -- ⟨ ⟩ unpack the existential statement
+  have hmn : m * n = m * k + m * k := by rw [hk, mul_add]
+  show ∃ l, m * n = l + l from ⟨_, hmn⟩ -- "show Goal from Proof"
+  -- "_" will be automatically inferred by Lean as "m * k"
 -- QUOTE.
 
-/- TEXT:
-Here we have used tactics to carry out small proof steps.
-But they can also provide substantial automation,
-and justify longer calculations and bigger inferential steps.
-For example, we can invoke Lean's simplifier with
-specific rules for simplifying statements about parity to
-prove our theorem automatically.
-TEXT. -/
--- QUOTE:
-example : ∀ m n : Nat, Even n → Even (m * n) := by
-  intros; simp [*, parity_simps]
--- QUOTE.
+-- /- TEXT:
+-- The *proof term* can be compressed to a single line:
+-- TEXT. -/
+-- -- QUOTE:
+-- example : ∀ m n : Nat, Even n → Even (m * n) :=
+-- fun m n ⟨k, hk⟩ ↦ ⟨m * k, by rw [hk, mul_add]⟩
+-- -- QUOTE.
 
-/- TEXT:
-Another big difference between the two introductions is that
-*Theorem Proving in Lean* depends only on core Lean and its built-in
-tactics, whereas *Mathematics in Lean* is built on top of Lean's
-powerful and ever-growing library, *Mathlib*.
-As a result, we can show you how to use some of the mathematical
-objects and theorems in the library,
-and some of the very useful tactics.
-This book is not meant to be used as an complete overview of the library;
-the `community <https://leanprover-community.github.io/>`_
-web pages contain extensive documentation.
-Rather, our goal is to introduce you to the style of thinking that
-underlies that formalization, and point out basic entry points
-so that you are comfortable browsing the library and
-finding things on your own.
 
-Interactive theorem proving can be frustrating,
-and the learning curve is steep.
-But the Lean community is very welcoming to newcomers,
-and people are available on the
-`Lean Zulip chat group <https://leanprover.zulipchat.com/>`_ round the clock
-to answer questions.
-We hope to see you there, and have no doubt that
-soon enough you, too, will be able to answer such questions
-and contribute to the development of *Mathlib*.
 
-So here is your mission, should you choose to accept it:
-dive in, try the exercises, come to Zulip with questions, and have fun.
-But be forewarned:
-interactive theorem proving will challenge you to think about
-mathematics and mathematical reasoning in fundamentally new ways.
-Your life may never be the same.
+-- /- TEXT:
+-- As you enter each line of such a proof in VS Code,
+-- Lean displays the *proof state* in a separate window,
+-- telling you what facts you have already established and what
+-- tasks remain to prove your theorem.
+-- You can replay the proof by stepping through the lines,
+-- since Lean will continue to show you the state of the proof
+-- at the point where the cursor is.
+-- In this example, you will then see that
+-- the first line of the proof introduces ``m`` and ``n``
+-- (we could have renamed them at that point, if we wanted to),
+-- and also decomposes the hypothesis ``Even n`` to
+-- a ``k`` and the assumption that ``n = 2 * k``.
+-- The second line, ``use m * k``,
+-- declares that we are going to show that ``m * n`` is even by
+-- showing ``m * n = 2 * (m * k)``.
+-- The next line uses the ``rw`` tactic
+-- to replace ``n`` by ``2 * k`` in the goal (``rw`` stands for “rewrite”),
+-- and the ``ring`` tactic solves the resulting goal ``m * (2 * k) = 2 * (m * k)``.
 
-*Acknowledgments.* We are grateful to Gabriel Ebner for setting up the
-infrastructure for running this tutorial in VS Code,
-and to Kim Morrison and Mario Carneiro for help porting it from Lean 4.
-We are also grateful for help and corrections from
-Takeshi Abe,
-Julian Berman, Alex Best, Thomas Browning,
-Bulwi Cha, Hanson Char, Bryan Gin-ge Chen, Steven Clontz, Mauricio Collaris, Johan Commelin,
-Mark Czubin,
-Alexandru Duca,
-Pierpaolo Frasa,
-Denis Gorbachev, Winston de Greef, Mathieu Guay-Paquet,
-Marc Huisinga,
-Benjamin Jones,
-Julian Külshammer,
-Victor Liu, Jimmy Lu,
-Martin C. Martin, Giovanni Mascellani, John McDowell, Joseph McKinsey, Bhavik Mehta, Isaiah Mindich,
-Kabelo Moiloa, Hunter Monroe, Pietro Monticone,
-Oliver Nash, Emanuelle Natale, Filippo A. E. Nuccio,
-Pim Otte,
-Bartosz Piotrowski,
-Nicolas Rolland, Keith Rush,
-Yannick Seurin, Guilherme Silva, Bernardo Subercaseaux,
-Pedro Sánchez Terraf, Matthew Toohey, Alistair Tucker,
-Floris van Doorn,
-Eric Wieser,
-and others.
-Our work has been partially supported by the Hoskinson Center for
-Formal Mathematics.
-TEXT. -/
+-- The ability to build a proof in small steps with incremental feedback
+-- is extremely powerful. For that reason,
+-- tactic proofs are often easier and quicker to write than
+-- proof terms.
+-- There isn't a sharp distinction between the two:
+-- tactic proofs can be inserted in proof terms,
+-- as we did with the phrase ``by rw [hk, mul_add]`` in the example above.
+-- We will also see that, conversely,
+-- it is often useful to insert a short proof term in the middle of a tactic proof.
+-- That said, in this book, our emphasis will be on the use of tactics.
+
+-- In our example, the tactic proof can also be reduced to a one-liner:
+-- TEXT. -/
+-- -- QUOTE:
+-- example : ∀ m n : Nat, Even n → Even (m * n) := by
+--   rintro m n ⟨k, hk⟩; use m * k; rw [hk]; ring
+-- -- QUOTE.
+
+-- /- TEXT:
+-- Here we have used tactics to carry out small proof steps.
+-- But they can also provide substantial automation,
+-- and justify longer calculations and bigger inferential steps.
+-- For example, we can invoke Lean's simplifier with
+-- specific rules for simplifying statements about parity to
+-- prove our theorem automatically.
+-- TEXT. -/
+-- -- QUOTE:
+-- example : ∀ m n : Nat, Even n → Even (m * n) := by
+--   intros; simp [*, parity_simps]
+-- -- QUOTE.
+
+-- /- TEXT:
+-- Another big difference between the two introductions is that
+-- *Theorem Proving in Lean* depends only on core Lean and its built-in
+-- tactics, whereas *Mathematics in Lean* is built on top of Lean's
+-- powerful and ever-growing library, *Mathlib*.
+-- As a result, we can show you how to use some of the mathematical
+-- objects and theorems in the library,
+-- and some of the very useful tactics.
+-- This book is not meant to be used as an complete overview of the library;
+-- the `community <https://leanprover-community.github.io/>`_
+-- web pages contain extensive documentation.
+-- Rather, our goal is to introduce you to the style of thinking that
+-- underlies that formalization, and point out basic entry points
+-- so that you are comfortable browsing the library and
+-- finding things on your own.
+
+-- Interactive theorem proving can be frustrating,
+-- and the learning curve is steep.
+-- But the Lean community is very welcoming to newcomers,
+-- and people are available on the
+-- `Lean Zulip chat group <https://leanprover.zulipchat.com/>`_ round the clock
+-- to answer questions.
+-- We hope to see you there, and have no doubt that
+-- soon enough you, too, will be able to answer such questions
+-- and contribute to the development of *Mathlib*.
+
+-- So here is your mission, should you choose to accept it:
+-- dive in, try the exercises, come to Zulip with questions, and have fun.
+-- But be forewarned:
+-- interactive theorem proving will challenge you to think about
+-- mathematics and mathematical reasoning in fundamentally new ways.
+-- Your life may never be the same.
+
+-- *Acknowledgments.* We are grateful to Gabriel Ebner for setting up the
+-- infrastructure for running this tutorial in VS Code,
+-- and to Kim Morrison and Mario Carneiro for help porting it from Lean 4.
+-- We are also grateful for help and corrections from
+-- Takeshi Abe,
+-- Julian Berman, Alex Best, Thomas Browning,
+-- Bulwi Cha, Hanson Char, Bryan Gin-ge Chen, Steven Clontz, Mauricio Collaris, Johan Commelin,
+-- Mark Czubin,
+-- Alexandru Duca,
+-- Pierpaolo Frasa,
+-- Denis Gorbachev, Winston de Greef, Mathieu Guay-Paquet,
+-- Marc Huisinga,
+-- Benjamin Jones,
+-- Julian Külshammer,
+-- Victor Liu, Jimmy Lu,
+-- Martin C. Martin, Giovanni Mascellani, John McDowell, Joseph McKinsey, Bhavik Mehta, Isaiah Mindich,
+-- Kabelo Moiloa, Hunter Monroe, Pietro Monticone,
+-- Oliver Nash, Emanuelle Natale, Filippo A. E. Nuccio,
+-- Pim Otte,
+-- Bartosz Piotrowski,
+-- Nicolas Rolland, Keith Rush,
+-- Yannick Seurin, Guilherme Silva, Bernardo Subercaseaux,
+-- Pedro Sánchez Terraf, Matthew Toohey, Alistair Tucker,
+-- Floris van Doorn,
+-- Eric Wieser,
+-- and others.
+-- Our work has been partially supported by the Hoskinson Center for
+-- Formal Mathematics.
+-- TEXT. -/
